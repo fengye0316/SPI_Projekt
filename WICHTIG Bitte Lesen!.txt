@@ -1,0 +1,12 @@
+Ich habe das Projekt da drinnen so angepasst, dass es im Folder
+.....\ST\STM32F4-Discovery_FW_V1.1.0\Project\Peripheral_Examples\
+läuft.
+
+Also dorthin den git clone legen.
+
+Damit die Unterordner funktionieren einfach das hier in folgendem Feld des Keil Projektes einfügen:
+
+Zauberstab -> C/C++ -> Include Paths:
+..\;..\..\..\..\..\Libraries\CMSIS\Include;..\..\..\..\..\Libraries\CMSIS\ST\STM32F4xx\Include;..\..\..\..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc;..\..\..\..\..\Utilities\STM32F4-Discovery
+dadurch dass wir eine Pfadtiefe tiefer sind als "normalerweise"
+
