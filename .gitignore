@@ -159,5 +159,23 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
+#MDK-ARM
+.mrohm
+.bak
+.uvopt
+.dep
+.iex
+.html
+.htm
+.lnp
+.map
+.plg
+.crf
+.d
+.tra
+.o
+
+
+
 # Mac crap
 .DS_Store
