@@ -189,6 +189,7 @@ pip-log.txt
 *.sct
 *.lst
 *.uvproj
+*.__i
 
 
 

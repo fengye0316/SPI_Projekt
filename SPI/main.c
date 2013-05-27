@@ -21,9 +21,12 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4_discovery.h"
-#include "display.h"
 #include "stm32f4xx.h"
+#include "spi_config.h"
 #include "stdint.h"
+
+typedef unsigned short uint16_t;
+typedef unsigned char uint8_t;
 
 /** @addtogroup STM32F4_Discovery_Peripheral_Examples
   * @{
@@ -47,12 +50,14 @@ __IO uint16_t CCR4_Val = 6826;
 int cnt = 0;
 int cnt2= 0;
 int status = 0;
+uint8_t data, rdata1, rdata2;
 
 /* Private typedef -----------------------------------------------------------*/
 GPIO_InitTypeDef  GPIO_InitStructure;
 TIM_TimeBaseInitTypeDef  TIM_TimeBasecStructure;
 EXTI_InitTypeDef   EXTI_InitStructure;
 SPI_InitTypeDef	SPI_InitStructure;
+
 extern NVIC_InitTypeDef   NVIC_InitStructure;
 
 /* Private define ------------------------------------------------------------*/
@@ -62,10 +67,9 @@ extern NVIC_InitTypeDef   NVIC_InitStructure;
 void LED_Config(void);
 void TIMER_Config(void);
 void PA0_als_EXTI0(void);
-void SPI_Config(void);
 void Delay(__IO uint32_t nCount);
 void GPIO_Config(void);
-void ChipSelect(int);
+
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -186,84 +190,6 @@ void TIM4_IRQHandler(void){
     TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
   }
 }
-void SPI_Config(void){
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-		/* 	Configure Pins 
-		 *	PA4 = SPI_NSS				Chip Select
-		 *	PA7 = SPI_MOSI			Out
-		 */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_7;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-		// connect SPI1 pins to SPI alternate function
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_SPI1);
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_SPI1);
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_SPI1);
-	
-	// enable peripheral clock
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-	
-	/* configure SPI1 in Mode 0 
-	 * CPOL = 0 --> clock is low when idle
-	 * CPHA = 0 --> data is sampled at the first edge
-	 */
-	SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx; // set to full duplex mode, seperate MOSI and MISO lines
-	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
-	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b; // one packet of data is 8 bits wide
-	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;        // clock is low when idle
-	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;      // data sampled at first edge
-	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; // SPI frequency is APB2 frequency / 4
-	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;	// data is transmitted MSB first
-	SPI_Init(SPI1, &SPI_InitStructure); 
-	
-	SPI_Cmd(SPI1, ENABLE); // enable SPI1
-}
-void GPIO_Config(void)
-{
-  /* GPIOD Periph clock enable */
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-
-  /* Configure PD12, PD13, PD14 and PD15 in output pushpull mode */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-}
-
-void LED_Config(void)
-{
-  /* GPIOD Periph clock enable */
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-
-  /* Configure PD12, PD13, PD14 and PD15 in output pushpull mode */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13| GPIO_Pin_14| GPIO_Pin_15;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
-}
-void ChipSelect(int n){
-	int i;
-	
-	//CS Pulse
-	SPI_SSOutputCmd(SPI1, ENABLE);
-	
-	//Clock Selecting Chip for Data Transmission
-	for (i = 0; i<n; i++){
-		GPIO_SetBits(GPIOC, GPIO_Pin_4);
-		GPIO_ResetBits(GPIOC, GPIO_Pin_4);
-	}
-	
-	SPI_SSOutputCmd(SPI1, DISABLE);
-}
 
 /**
   * @brief  Main program
@@ -272,32 +198,35 @@ void ChipSelect(int n){
   */
 
 int main(void){
+	uint16_t data;
 	NVIC_PriorityGroupConfig (NVIC_PriorityGroup_2);
 	//	int cnt = 0;
-	TIMER_Config();
+	//TIMER_Config();
 	//PA0_als_EXTI0();
-	SPI_Config();
-  /* LED Configuration */
-  LED_Config();
+	SPI1_Config();
 
-	//selecting Chip1 of 4
+	
+	// Testing send Data
+// 	SPI_SSOutputCmd(SPI1, ENABLE);
+// 	SPI_I2S_SendData(SPI1, 0x50);
+// 	SPI_SSOutputCmd(SPI1, DISABLE);
+// 	data = SPI_I2S_ReceiveData(SPI1);
 
+	
+	rdata1 = 0;
+	rdata2 = 0;
 
-	ht1632_cs(1);
-	SPI_I2S_SendData(SPI1, 0x01U);
-	SPI_I2S_SendData(SPI1, 0x03U);
-	SPI_I2S_SendData(SPI1, 0x14U);
-	SPI_I2S_SendData(SPI1, 0x18U);	
-	SPI_I2S_SendData(SPI1, 0x20U);
-	SPI_I2S_SendData(SPI1, 0x08U);	
-	SPI_I2S_SendData(SPI1, 0xA0 + 9);
-	SPI_I2S_SendData(SPI1, 5);
-
-  while (1)
-  {  
-			GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
-			Delay(0x8FFFFF);
-  }
+	
+	while(1){
+		GPIOA->BSRRH |= GPIO_Pin_8; // set PE7 (CS) low
+		SPI1_send(0x40);  // transmit data
+		//SPI1_send(0xFF);
+		rdata1 = SPI1_send(0x00); // transmit dummy byte and receive data
+		rdata2 = SPI1_send(0x00);
+		GPIOA->BSRRL |= GPIO_Pin_8; // set PE7 (CS) high
+		
+		// implement sending function 8&16bit;
+	}
 }
 
 /**
