@@ -160,27 +160,32 @@ pip-log.txt
 .mr.developer.cfg
 
 #MDK-ARM
-.admin
-.stefan
-.Admin
-.mrohm
-.bak
-.uvopt
-.dep
-.iex
-.html
-.htm
-.lnp
-.map
-.plg
-.crf
-.d
-.tra
-.o
-.uvgui
-.ovproj
-.uvopt
-.maxwell
+#begin user name induced files
+*.admin
+*.stefan
+*.Admin
+*.mrohm
+*.maxwell
+
+#begin keil project files
+*.uvgui
+*.ovproj
+*.uvopt
+
+#begin other keil files
+*.bak
+*.dep
+*.iex
+*.html
+*.htm
+*.lnp
+*.map
+*.plg
+*.crf
+*.d
+*.tra
+*.o
+
 
 
 
