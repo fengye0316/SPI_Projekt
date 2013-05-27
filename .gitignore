@@ -160,6 +160,9 @@ pip-log.txt
 .mr.developer.cfg
 
 #MDK-ARM
+.admin
+.stefan
+.Admin
 .mrohm
 .bak
 .uvopt
@@ -174,6 +177,10 @@ pip-log.txt
 .d
 .tra
 .o
+.uvgui
+.ovproj
+.uvopt
+.maxwell
 
 
 
