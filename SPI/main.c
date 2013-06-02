@@ -52,7 +52,7 @@ int main(void){
 	PA0_als_EXTI0();
   
 	/* LED Configuration */
-  LED_Config();
+  	LED_Config();
 	
 	/* Timer config */
 	TIM_Config();
@@ -61,8 +61,8 @@ int main(void){
 	if(SPI2->CR1 == 0 ) {
  			SPI_Config();
  	}
-  while (1){  
-  }
+  	while (1){  
+  	}
 }
 
 /*
@@ -74,7 +74,7 @@ int main(void){
  */
 
 void TIM4_IRQHandler(void){
-  if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET){
+	if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET){
 		/* check if SPI2 is already configured */
 		if (SPI2->CR1 == 0 ){	
 			/* Configure SPI, if not happend until now */
@@ -84,11 +84,11 @@ void TIM4_IRQHandler(void){
 			/* Do some blinky for "seeing" something */
 			GPIO_ResetBits(GPIOD, GPIO_Pin_13);
 			GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
-		
+	
 			/* read config of SPI Sensor */
 			SPI_SendByte(0x58);
 			id = SPI_SendByte(0x00);
-			
+		
 			if( id == 0xC3 ){ // if id is shown correctly do read			
 			// Start Debug
 				SPI_SendByte(0x40);
@@ -109,37 +109,36 @@ void TIM4_IRQHandler(void){
 				Tlow.byte[1] = SPI_SendByte(0x00);
 				Tlow.byte[0] = SPI_SendByte(0x00);
 			// End Debug
-			
-				/* 
-				 * 	Reading Data From ADT7320 SPI needs following definitions
-				 *	First: Sending the CommandByte, 0x50: Read from Temperature Register 0x02
-				 *	Second: Reading 16bit Temperature Sequence whilst pulling 16 dummy bits into the temperature register
-				 */
-			
+		
+			/* 
+			 * 	Reading Data From ADT7320 SPI needs following definitions
+			 *	First: Sending the CommandByte, 0x50: Read from Temperature Register 0x02
+			 *	Second: Reading 16bit Temperature Sequence whilst pulling 16 dummy bits into the temperature register
+			 */
 				SPI_SendByte(0x50);
 				data.byte[1] = SPI_SendByte(0x00);
 				data.byte[0] = SPI_SendByte(0x00);	
-				
-				if( data.word > 0x0D00 ){ //0x0D00 are 26°C
+			
+				if( data.word > 0x0D00 ){ //0x0D00 are 26ï¿½C
 					GPIO_ResetBits(GPIOD, GPIO_Pin_15);
 					GPIO_SetBits(GPIOD, GPIO_Pin_14);
 				} else {
 					GPIO_SetBits(GPIOD, GPIO_Pin_15);
 					GPIO_ResetBits(GPIOD, GPIO_Pin_14);
 				}
-				
-				/*
-				 * Does STM32F4 has floating point extension?
-				 * if yes, how? float and double are not working
-				 * if no: value of PS/2 has to be multiplied with 128.
-				 */
+			
+			/*
+			 * Does STM32F4 has floating point extension?
+			 * if yes, how? float and double are not working
+			 * if no: value of PS/2 has to be multiplied with 128.
+			 */
 			} else {
 				SPI_Reset();
 				SPI_SendConfig();
 			} 
  		}
-		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
-  }
+	TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+	}
 }
 
 void LED_Config(void){
