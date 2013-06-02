@@ -23,6 +23,7 @@
 void LED_Config(void);
 int main(void);
 void TIM4_IRQHandler(void);
+void calTemp(uint16_t);
 
 int i;
 
@@ -40,6 +41,8 @@ union {
 	uint8_t byte[2]; 
 } Tcrit, Thigh, Tlow;
 
+double temperature_here;
+double temperature_there;
 
 
 //--------------------------------------------------------------

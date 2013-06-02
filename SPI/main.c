@@ -17,6 +17,8 @@ USART_InitTypeDef USART_InitStruct;
 
 extern NVIC_InitTypeDef   NVIC_InitStructure;
 
+
+
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -26,9 +28,6 @@ extern NVIC_InitTypeDef   NVIC_InitStructure;
 int main(void){
 	/* Init of NVIC */
 	NVIC_PriorityGroupConfig (NVIC_PriorityGroup_2);
-	
-	/* PushButton Configuration */
-	PA0_als_EXTI0();
   
 	/* LED Configuration */
   	LED_Config();
@@ -64,7 +63,7 @@ void TIM4_IRQHandler(void){
 			GPIO_ResetBits(GPIOD, GPIO_Pin_13);
 			GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
 	
-			/* read config of SPI Sensor */
+			/* read id of SPI Sensor */
 			SPI_SendByte(0x58);
 			id = SPI_SendByte(0x00);
 		
@@ -105,7 +104,8 @@ void TIM4_IRQHandler(void){
 					GPIO_SetBits(GPIOD, GPIO_Pin_15);
 					GPIO_ResetBits(GPIOD, GPIO_Pin_14);
 				}
-			
+				calTemp(data.word);
+				
 			/*
 			 * Does STM32F4 has floating point extension?
 			 * if yes, how? float and double are not working
@@ -117,6 +117,16 @@ void TIM4_IRQHandler(void){
 			} 
  		}
 	TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+	}
+}
+
+void calTemp(uint16_t temp){
+	uint16_t tmp = temp;
+	/* check whether temp is positive or negative */
+	if( tmp >> 15 & 0x0001 ){
+		temperature_here = ( (double) temp - 65536) / 128;
+	} else {
+		temperature_here = (double) temp / 128;
 	}
 }
 
