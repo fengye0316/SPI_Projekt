@@ -3,8 +3,8 @@
 //--------------------------------------------------------------
 
 //--------------------------------------------------------------
-#ifndef __TIM_CONFIG_H
-#define __TIM_CONFIG_H
+#ifndef __MAIN_H
+#define __MAIN_H
 
 //--------------------------------------------------------------
 // Includes
@@ -16,10 +16,31 @@
 #include "stm32f4xx_tim.h"
 
 
+
 //--------------------------------------------------------------
 // Globale Funktionen
 //--------------------------------------------------------------
-void TIM_Config(void);
+void LED_Config(void);
+void PA0_als_EXTI0(void);
+int main(void);
+void TIM4_IRQHandler(void);
+
+int i;
+
+union { 
+	uint16_t word; 
+	uint8_t byte[2]; 
+} data;
+
+uint8_t id;
+
+// Debugging Variables 
+uint8_t status, conf, id, Thyst;
+union { 
+	uint16_t word; 
+	uint8_t byte[2]; 
+} Tcrit, Thigh, Tlow;
+
 
 
 //--------------------------------------------------------------

@@ -24,28 +24,12 @@
 #include "stm32f4xx_tim.h"
 #include "spi_config.h"
 #include "tim_config.h"
+#include "main.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-__IO uint16_t CCR1_Val = 250;
-__IO uint16_t CCR2_Val = 500;
-__IO uint16_t CCR3_Val = 750;
-__IO uint16_t CCR4_Val = 200;
-
-uint16_t PrescalerValue = 0;
-uint16_t CC1 = 250;
-uint16_t CC2 = 500;
-uint16_t CC3 = 900;
-uint16_t CC4 = 900;
-
-int cnt = 0;
-int status = 0;
-double temperature;
-uint16_t data = 0;
-uint8_t data1 = 0, data2 = 0;
-
 /* Private typedef -----------------------------------------------------------*/
 GPIO_InitTypeDef  GPIO_InitStructure;
 TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
@@ -58,12 +42,119 @@ extern NVIC_InitTypeDef   NVIC_InitStructure;
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
-void LED_Config(void);
-void PA0_als_EXTI0(void);
-void Delay(__IO uint32_t nCount);
-void calculateTemp(uint16_t);
-
 /* Private functions ---------------------------------------------------------*/
+
+int main(void){
+	/* Init of NVIC */
+	NVIC_PriorityGroupConfig (NVIC_PriorityGroup_2);
+	
+	/* PushButton Configuration */
+	PA0_als_EXTI0();
+  
+	/* LED Configuration */
+  LED_Config();
+	
+	/* Timer config */
+	TIM_Config();
+
+	/* If SPI is already configured by timer do nothing */
+	if(SPI2->CR1 == 0 ) {
+ 			SPI_Config();
+ 	}
+  while (1){  
+  }
+}
+
+/*
+ * TIM4 triggers this interrupt, we got a couple of LEDS
+ * 12: Green, toggles every time the interrupt is triggered
+ * 13: Orange: is set when SPI is NOT Configured
+ * 14: Red: is set when Temperature is above value
+ * 15: Blue: is set when Temperature is below value
+ */
+
+void TIM4_IRQHandler(void){
+  if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET){
+		/* check if SPI2 is already configured */
+		if (SPI2->CR1 == 0 ){	
+			/* Configure SPI, if not happend until now */
+ 			SPI_Config();
+ 			GPIO_SetBits(GPIOD, GPIO_Pin_13);
+		} else {
+			/* Do some blinky for "seeing" something */
+			GPIO_ResetBits(GPIOD, GPIO_Pin_13);
+			GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
+		
+			/* read config of SPI Sensor */
+			SPI_SendByte(0x58);
+			id = SPI_SendByte(0x00);
+			
+			if( id == 0xC3 ){ // if id is shown correctly do read			
+			// Start Debug
+				SPI_SendByte(0x40);
+				status = SPI_SendByte(0x00);
+				SPI_SendByte(0x48);
+				conf = SPI_SendByte(0x00);
+				SPI_SendByte(0x58);
+				id = SPI_SendByte(0x00);
+				SPI_SendByte(0x60);
+				Tcrit.byte[1] = SPI_SendByte(0x00);
+				Tcrit.byte[0] = SPI_SendByte(0x00);
+				SPI_SendByte(0x68);
+				Thyst = SPI_SendByte(0x00);
+				SPI_SendByte(0x70);
+				Thigh.byte[1] = SPI_SendByte(0x00);
+				Thigh.byte[0] = SPI_SendByte(0x00);
+				SPI_SendByte(0x78);
+				Tlow.byte[1] = SPI_SendByte(0x00);
+				Tlow.byte[0] = SPI_SendByte(0x00);
+			// End Debug
+			
+				/* 
+				 * 	Reading Data From ADT7320 SPI needs following definitions
+				 *	First: Sending the CommandByte, 0x50: Read from Temperature Register 0x02
+				 *	Second: Reading 16bit Temperature Sequence whilst pulling 16 dummy bits into the temperature register
+				 */
+			
+				SPI_SendByte(0x50);
+				data.byte[1] = SPI_SendByte(0x00);
+				data.byte[0] = SPI_SendByte(0x00);	
+				
+				if( data.word > 0x0D00 ){ //0x0D00 are 26°C
+					GPIO_ResetBits(GPIOD, GPIO_Pin_15);
+					GPIO_SetBits(GPIOD, GPIO_Pin_14);
+				} else {
+					GPIO_SetBits(GPIOD, GPIO_Pin_15);
+					GPIO_ResetBits(GPIOD, GPIO_Pin_14);
+				}
+				
+				/*
+				 * Does STM32F4 has floating point extension?
+				 * if yes, how? float and double are not working
+				 * if no: value of PS/2 has to be multiplied with 128.
+				 */
+			} else {
+				SPI_Reset();
+				SPI_SendConfig();
+			} 
+ 		}
+		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+  }
+}
+
+void LED_Config(void){
+  /* GPIOD Periph clock enable */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13| GPIO_Pin_14| GPIO_Pin_15;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+  GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+}
+
 void PA0_als_EXTI0(void){
 
  /* GPIOA Periph clock enable */
@@ -76,9 +167,6 @@ void PA0_als_EXTI0(void){
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
-	
-	//GPIO_PinAFConfig(GPIOA, GPIO_PinSource0, GPIO_AF_TIM5);
-	
 	
 	// ------ PA0 als EXTI0 -------------------
   /* Enable SYSCFG clock */
@@ -100,7 +188,6 @@ void PA0_als_EXTI0(void){
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x03;					// Subprio 	3
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
-
 }
 
 void EXTI0_IRQHandler(void){
@@ -109,101 +196,7 @@ void EXTI0_IRQHandler(void){
 	EXTI_ClearITPendingBit(EXTI_Line0);
 }
 
-int main(void){
-	/* Init of NVIC */
-	NVIC_PriorityGroupConfig (NVIC_PriorityGroup_2);
-	
-	/* PushButton Configuration */
-	PA0_als_EXTI0();
-  
-	/* LED Configuration */
-  LED_Config();
-	
-	/* Timer config */
-	TIM_Config();
 
-	/* If SPI is already configured by timer do nothing */
-	if(SPI2->CR1 == 0x00000000) {
- 			SPI_Config(2);
-			/*  in SPI_Config() are more modes to be selected, look in spi_config.c
-			 *	commandbyte is sent in SPI_Config() too.
-			 */
- 	}
-	
-  while (1){  
-  }
-}
-
-/**
-  * @brief  Setup an interval timer
-  * @param  None
-  * @retval None
-  */
-
-void LED_Config(void){
-  /* GPIOD Periph clock enable */
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13| GPIO_Pin_14| GPIO_Pin_15;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-}
-
-void TIM4_IRQHandler(void){
-  if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET){
-    GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
-		
-			/* If SPI is already configured by main do nothing */
-		if(SPI2->CR1 == 0x00000000) {
- 			SPI_Config(2);
-		}
-
-		/* 
-		 * 	Reading Data From ADT7320 SPI needs following definitions
-		 *	First: Sending the CommandByte, 0x50: Read from Temperature Register 0x02
-		 *	Second: Reading 16bit Temperature Sequence whilst pulling 16 dummy bits into the temperature register
-		 */
-		
-		SPI_SendByte(0x50);
- 		data = SPI_Send2Byte(0x0000);
-			
-		//if( data < 0x8000){ //Temperature is postive
-			if( data > 0x0C80 ){ //0x0C80 are 3200d, 25.0°C
-				GPIO_ResetBits(GPIOD, GPIO_Pin_15);
-				GPIO_SetBits(GPIOD, GPIO_Pin_14);
-			} else {
-				GPIO_SetBits(GPIOD, GPIO_Pin_15);
-				GPIO_ResetBits(GPIOD, GPIO_Pin_14);
-			}
-		//}
-		//calculateTemp(data);
-			
-    TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
-  }
-}
-
-void calculateTemp(uint16_t curTemp){
-		uint16_t tmp = curTemp;
-		if ( (tmp >> 15 & 0x0001) == 0x0001 ) {
-			//temperature is negative
-			temperature = (curTemp - 65536) / 128;
-		} else {
-			//temperature is positive
-			temperature = curTemp / 128;
-		}
-}
-
-void Delay(__IO uint32_t nCount)
-{
-  while(nCount--)
-  {
-		
-  }
-}
 
 
 #ifdef  USE_FULL_ASSERT
