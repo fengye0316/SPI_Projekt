@@ -133,49 +133,6 @@ void LED_Config(void){
 
 }
 
-void PA0_als_EXTI0(void){
-
- /* GPIOA Periph clock enable */
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-  /* Configure PA0 Input mode */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-  //GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
-	
-	// ------ PA0 als EXTI0 -------------------
-  /* Enable SYSCFG clock */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-	/* Connect EXTI Line0 to PA0 pin */
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
-  // ------ PA0 als EXTI0 -------------------	
-	
-	/* Configure EXTI Line0 */
-  EXTI_InitStructure.EXTI_Line = EXTI_Line0;  
-  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;  
-  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-  EXTI_Init(&EXTI_InitStructure);
-
-	/* Enable and set EXTI Line0 Interrupt to the lowest priority */
-  NVIC_InitStructure.NVIC_IRQChannel = EXTI0_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x03;	// Gruppe 	3
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x03;					// Subprio 	3
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
-}
-
-void EXTI0_IRQHandler(void){
-  if(EXTI_GetITStatus(EXTI_Line0) != RESET){
-	}
-	EXTI_ClearITPendingBit(EXTI_Line0);
-}
-
-
-
 
 #ifdef  USE_FULL_ASSERT
 
