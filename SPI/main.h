@@ -21,7 +21,6 @@
 // Globale Funktionen
 //--------------------------------------------------------------
 void LED_Config(void);
-void PA0_als_EXTI0(void);
 int main(void);
 void TIM4_IRQHandler(void);
 
