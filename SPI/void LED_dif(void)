@@ -1,6 +1,6 @@
 #include "stm32f4_discovery.h"
 #include "main.c"
-void LED_diff(void){  //PS2 calculate tolerance and LED Output  
+void LED_dif(void){  //PS2 calculate tolerance and LED Output  
 	double tolerance;
 	int min;
 	if(temperature_here > temperature_there){
