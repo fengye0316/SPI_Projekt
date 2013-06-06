@@ -1,0 +1,16 @@
+#include "stm32f4_discovery.h"
+#include "main.c"
+void Cal_dif(void)
+{  			//Temperaturdifferenz berechnen
+	double tolerance;
+	if(temperature_here > temperature_there){
+		tolerance = (temperature_here - temperature_there);
+	}else if(temperature_here < temperature_there){
+		tolerance = (temperature_there - temperature_here);
+	}			//Variablen in Pointer umwandeln und ueber die putty Funktion ausgeben
+		void *tolerance1 = &tolerance;
+		void *temp1 = &temperature_here;
+		void *temp2 = &temperature_there;
+	
+		putty_call(temp1,temp2,tolerance);
+}
