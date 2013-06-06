@@ -21,10 +21,9 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4_discovery.h"
-#include <misc.h>			 // I recommend you have a look at these in the ST firmware folder
-#include <stm32f4xx_usart.h> // under Libraries/STM32F4xx_StdPeriph_Driver/inc and src
+#include <misc.h>			 
+#include <stm32f4xx_usart.h> 
 #include <cstdio>
-//#include "usart.h"
 
 
 /** @addtogroup STM32F4_Discovery_Peripheral_Examples
@@ -51,10 +50,9 @@ char data = 'A';
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO uint32_t nCount);
 void LEDEnable(void);
-void PA0_als_EXTI0(void);
 void USARTConf(void);
 void EXTI0_IRQHandler(void);
-void USART4_IRQHandler(void);
+void putty_call(char *, char *, char *);
 
 
 /* Private functions ---------------------------------------------------------*/
@@ -67,13 +65,11 @@ void USART4_IRQHandler(void);
 	//***************************************************************************************************************************************************************
 
 		//**************************************************************************************************************************************************************
-	void USARTConf()
-	{
+	void USARTConf(){
 		/* USART2 init */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-	//RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 		
 	/* GPIO UART Init */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6; // Pin 6 (Rx)
@@ -83,8 +79,8 @@ void USART4_IRQHandler(void);
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOD, &GPIO_InitStructure);	
 		
-// GPIO UART INIT
-			GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; // Pin 2 (Tx) are used
+// GPIO UART Init
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; // Pin 2 (Tx) 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF; 			
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;			
@@ -94,18 +90,14 @@ void USART4_IRQHandler(void);
 	GPIO_PinAFConfig(GPIOD, GPIO_PinSource6, GPIO_AF_USART2);
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
 
-	/* Now the USART_InitStruct is used to define the 
-	 * properties of USART1 
-	 */
-	 	USART_OverSampling8Cmd(USART2, ENABLE);
+	USART_OverSampling8Cmd(USART2, ENABLE);
 
-	 
-	USART_InitStruct.USART_BaudRate = 9600;				// the baudrate is set to the value we passed into this init function
-	USART_InitStruct.USART_WordLength = USART_WordLength_8b;// we want the data frame size to be 8 bits (standard)
-	USART_InitStruct.USART_StopBits = USART_StopBits_1;		// we want 1 stop bit (standard)
-	USART_InitStruct.USART_Parity = USART_Parity_No;		// we don't want a parity bit (standard)
-	USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None; // we don't want flow control (standard)
-	USART_InitStruct.USART_Mode = USART_Mode_Rx | USART_Mode_Tx; // we want to enable the transmitter and the receiver
+	USART_InitStruct.USART_BaudRate = 9600;			
+	USART_InitStruct.USART_WordLength = USART_WordLength_8b;
+	USART_InitStruct.USART_StopBits = USART_StopBits_1;		
+	USART_InitStruct.USART_Parity = USART_Parity_No;		
+	USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None; 
+	USART_InitStruct.USART_Mode = USART_Mode_Rx | USART_Mode_Tx; 
 	USART_Init(USART2, &USART_InitStruct);	
 
 	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
@@ -116,69 +108,59 @@ void USART4_IRQHandler(void);
 	}
 	
 	
-		//***************************************************************************************************************************************************************
+//***************************************************************************************************************************************************************
 	
 	
 	
-	//*************************************** S T A R T    O F    M A I N **********************************************************
-int main(void)
-{
+//*************************************** S T A R T    O F    M A I N **********************************************************
+int main(void){
+	
+	char *temperature_here = "40 Grad\t";
+	char *temperature_there = "42 Grad\t";
+	char *difference = "2 Grad\n\r";
 	
 	NVIC_PriorityGroupConfig (NVIC_PriorityGroup_2);
 
-	
-	
-	//LEDEnable();
   USARTConf();
-	//PA0_als_EXTI0();
 	
-	
-  while (1)	
-  {
-		char *temp1 = "40 Grad\t";
-		char *temp2 = "42 Grad\t";
-		char *tolerance = "2 Grad\n\r";
-		
-		    Delay(0xFFFFFF);
+  while (1)	{
+			putty_call(temperature_here, temperature_there, difference);
 
-
-		while (*temp1)
-		{
-			while( !(USART2->SR & 0x00000040));
-			USART_SendData(USART2, *temp1);
-			temp1++;
-		}
-		while(*temp2)
-		{
-			while (!(USART2->SR & 0x00000040));
-			USART_SendData(USART2, *temp2);
-			temp2++;
-		}		
-				while(*tolerance)
-		{
-			while (!(USART2->SR & 0x00000040));
-			USART_SendData(USART2, *tolerance);
-			tolerance++;
-		}		
   }
-  
+
 }
 
 //******************************************************************************************
-void Delay(__IO uint32_t nCount)
-{
-  while(nCount--)
-  {
+
+void putty_call(char* temperature_here, char *temperature_there, char *difference){
+	 
+
+		while (*temperature_here){
+			while( !(USART2->SR & 0x00000040));
+			USART_SendData(USART2, *temperature_here);
+			temperature_here++;
+		}
+		while(*temperature_there){
+			while (!(USART2->SR & 0x00000040));
+			USART_SendData(USART2, *temperature_there);
+			temperature_there++;
+		}		
+				while(*difference){
+			while (!(USART2->SR & 0x00000040));
+			USART_SendData(USART2, *difference);
+			difference++;
+		}		
+}
+void Delay(__IO uint32_t nCount){
+  while(nCount--){
 	}
 }
 
 
 
-void assert_failed(uint8_t* file, uint32_t line)
-{ 
+void assert_failed(uint8_t* file, uint32_t line){ 
  
-  while (1)
-  {
+  while (1){
   }
 }
 
