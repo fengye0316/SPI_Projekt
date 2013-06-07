@@ -12,9 +12,9 @@ void Cal_dif(void){//Variablen in Char umwandeln und ueber die putty Funktion au
   }else if(temperature_here < temperature_there){
     tolerance = (temperature_there - temperature_here);
   }
-  sprintf(t_here,"%2.f Grad an MC1\t",temperature_here);
-  sprintf(t_there,"%2.f Grad an MC2\t",temperature_there);
-  sprintf(t_tol,"%2.f betraegt die Differenz\n\r",tolerance);
+  sprintf(t_here,"%.2f Grad an MC1\t",temperature_here);
+  sprintf(t_there,"%.2f Grad an MC2\t",temperature_there);
+  sprintf(t_tol,"%.2f betraegt die Differenz\n\r",tolerance);
 	
   putty_call(temp1,temp2,tolerance);
 }
