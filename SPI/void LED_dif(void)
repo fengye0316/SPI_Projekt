@@ -1,0 +1,26 @@
+#include "stm32f4_discovery.h"
+#include "main.c"
+void LED_dif(void){  //PS2 calculate tolerance and LED Output  
+	double tolerance;
+	int min;
+	if(temperature_here > temperature_there){
+		tolerance = (temperature_here - temperature_there);
+	}else if(temperature_here < temperature_there){
+		tolerance = (temperature_there - temperature_here);
+		min = 1;
+	}
+	if(t_diff != ' '){
+		if((temperature_here > t_diff ) || (temperature_there> t_diff)){
+		
+			if(((tolerance < t_diff) && min !=1) || 	((tolerance > t_diff)&& min ==1)){
+				GPIO_ToggleBits(GPIOD, GPIO_Pin_14); //Led red 
+			}
+			if(((tolerance > t_diff)&& min !=1) || ((tolerance < t_diff) && min ==1)){
+				GPIO_ToggleBits(GPIOD, GPIO_Pin_15); //Led blue 
+			}
+		}
+		if((temperature_here < t_diff ) || (temperature_there < t_diff)){
+			GPIO_ToggleBits(GPIOD, GPIO_Pin_12); //Led green
+		}
+	}
+}
